@@ -1,4 +1,4 @@
-"""Write results_by_game.csv: every game of 2025 (test) and 2026 (this season so far), each graded with
+"""Write results_by_game.csv and results_summary.csv: every game of 2025 (test) and 2026 (this season so far), each graded with
 settings chosen on the 5 seasons before it. Run:  python3 export_results.py
 Positive numbers mean the home team is favoured, or wins by that much."""
 import csv
@@ -33,3 +33,18 @@ with open("results_by_game.csv", "w", newline="") as f:
     w.writeheader()
     w.writerows({k: round(v, 1) if isinstance(v, float) else v for k, v in r.items()} for r in rows)
 print(f"wrote results_by_game.csv ({len(rows)} games)")
+
+import statistics as st
+with open("results_summary.csv", "w", newline="") as f:
+    w = csv.writer(f)
+    w.writerow(["season", "games", "spread: avg points off the close", "within 1 point", "within 2 points",
+                "4+ points off", "model closer to result", "total: avg points off the close"])
+    for season in ("2025", "2026"):
+        s = [r for r in rows if r["season"] == season]
+        off = [r["points off the close"] for r in s]
+        tot = [r["total points off the close"] for r in s if r["total points off the close"] is not None]
+        pct = lambda xs: f"{100 * sum(xs) / len(xs):.0f}%"
+        w.writerow([season + (" (test)" if season == "2025" else " (so far)"), len(s), f"{st.mean(off):.2f}",
+                    pct([x <= 1 for x in off]), pct([x <= 2 for x in off]), pct([x >= 4 for x in off]),
+                    pct([r["closer to result"] == "model" for r in s]), f"{st.mean(tot):.2f}"])
+print("wrote results_summary.csv")

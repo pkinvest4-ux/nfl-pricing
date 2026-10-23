@@ -27,7 +27,7 @@ def game_days(games):
 
 # The settings ("dials"). Defaults are starting values; the final ones are chosen in tuned_models():
 #   k        how far a team rating moves toward each result (0.05 = 5% of the miss)
-#   hca      home-court advantage, in points
+#   hca      home-field advantage, in points
 #   carry    share of a team rating kept from one season to the next
 #   k_market how far a team rating moves toward each closing line
 #   rest     points for a full week more rest than the opponent
@@ -37,7 +37,9 @@ def game_days(games):
 #   div      share the margin shrinks in division games (0.1 = 10%)
 def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0.0, qb_level=0.0, div=0.0,
         trace=None):
-    """Walk through every season one day at a time. Returns each game's predicted home margin."""
+    """Walk through every season one day at a time. Returns each game's predicted home margin.
+    Pass a dict as `trace` to record how each game's number was built (used by explain.py)."""
+    # team: every team's current rating in points, e.g. {"SF": 4.2, "NO": -2.1}; preds: the model's numbers
     team, season, preds = {}, None, []
     for day in game_days(games):
         if day[0]["season"] != season:  # a new season: ratings shrink toward average
@@ -61,7 +63,7 @@ def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0
                 # the expected starter against the team's usual quarterback over its last 8 games
                 "qb_level": qb_level * (g["home_qb_level"] - g["away_qb_level"]),
             }
-            p = sum(parts.values()) * (1 - div if g["div"] else 1)
+            p = sum(parts.values()) * (1 - div if g["div"] else 1)  # add the parts; division games shrink a little
             day_preds.append(p)
             if trace is not None:
                 trace[g["id"]] = dict(parts, total=p)
@@ -69,9 +71,11 @@ def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0
 
         # 2. Only now learn from the day's results and closing lines.
         for g, p in zip(day, day_preds):
-            miss_result = g["margin"] - p
+            miss_result = g["margin"] - p                      # how wrong we were on the score
+            # move the two teams' ratings a little toward the result
             team[g["home"]] = team.get(g["home"], 0.0) + k * miss_result
             team[g["away"]] = team.get(g["away"], 0.0) - k * miss_result
+            # and toward the closing line (the biggest single improvement)
             if k_market and g["learn_close"] is not None:
                 miss_close = -g["learn_close"] - p  # the close is the home spread, so -close is the market's margin
                 team[g["home"]] += k_market * miss_close
