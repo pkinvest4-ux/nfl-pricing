@@ -107,3 +107,11 @@ Tuned on 2021 to 2025: starting model 2.43, full model 2.02 off the DraftKings c
    Dropped: learning from each game's EPA instead of the score (worse in 6 of 9), and pulling numbers
    toward 3 and 7 (+0.006, too small to keep).
 4. Code frozen (`c1f797f`), 2025 graded a second time: 1.78.
+5. Two more ideas were tested on 2016 to 2024 only and not kept, so 2025 was not graded again:
+   - **Position groups.** Starters out counted separately for the offensive line, defensive line,
+     linebackers, secondary, receivers and running backs, each with its own weight: worse on average
+     (-0.003; better in 6 of 9 seasons, worse in 3). Split only into offence and defence: +0.000. With about
+     270 games a season, separate weights mostly fit noise; one weight for every starter does as well.
+   - **Player ratings,** as in the NBA model: every player rated from the closing lines of the games he
+     played, by snap share, and the two expected lineups compared: +0.001, better in 3 of 9 seasons. The
+     market already prices individual players better than this.
