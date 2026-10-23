@@ -6,6 +6,8 @@ Predicted home margin =
     + rest                                        (rest x the gap in days since each team's last game, capped at a week)
     + quarterback change                          (qb x the drop when a starter is listed out)
     + other injuries                              (inj x the gap in other starters listed out)
+    + quarterback level                           (qb_level x the expected starter against the team's usual one)
+then the whole margin shrinks a little for division games (div), since rivals play closer games.
 
 After a day's games are played, team ratings move toward the actual margin (k) and toward the closing
 line (k_market). At the start of each season every rating shrinks toward average (carry).
@@ -31,7 +33,10 @@ def game_days(games):
 #   rest     points for a full week more rest than the opponent
 #   qb       weight on the quarterback change (1.0 = one point per point of EPA a game)
 #   inj      points per other starter listed out
-def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0.0, trace=None):
+#   qb_level weight on the expected starter's value against the team's usual quarterback (last 8 games)
+#   div      share the margin shrinks in division games (0.1 = 10%)
+def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0.0, qb_level=0.0, div=0.0,
+        trace=None):
     """Walk through every season one day at a time. Returns each game's predicted home margin."""
     team, season, preds = {}, None, []
     for day in game_days(games):
@@ -53,8 +58,10 @@ def run(games, k=0.05, hca=2.0, carry=0.6, k_market=0.0, rest=0.0, qb=0.0, inj=0
                 "qb": qb * (g["home_qb"] - g["away_qb"]),
                 # other starters listed on the final injury report
                 "injuries": inj * (g["away_starters_out"] - g["home_starters_out"]),
+                # the expected starter against the team's usual quarterback over its last 8 games
+                "qb_level": qb_level * (g["home_qb_level"] - g["away_qb_level"]),
             }
-            p = sum(parts.values())
+            p = sum(parts.values()) * (1 - div if g["div"] else 1)
             day_preds.append(p)
             if trace is not None:
                 trace[g["id"]] = dict(parts, total=p)
@@ -94,7 +101,9 @@ def tuned_models(games, season=None, line="close"):
     _, closes = tune(games, [dict(base, k_market=m, k=k) for m in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8)
                              for k in (0.0, 0.01, 0.02, base["k"])], season, line)
     _, rested = tune(games, [dict(closes, rest=x) for x in (0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0)], season, line)
-    _, qbs = tune(games, [dict(rested, qb=x) for x in (0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5)], season, line)
+    _, qbs = tune(games, [dict(rested, qb=x, qb_level=y) for x in (0, 0.25, 0.5, 0.75, 1.0, 1.25)
+                          for y in (0, 0.1, 0.2, 0.3, 0.5)], season, line)
     _, injured = tune(games, [dict(qbs, inj=x) for x in (0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75)], season, line)
+    _, rivals = tune(games, [dict(injured, div=x) for x in (0, 0.05, 0.1, 0.15, 0.2, 0.25)], season, line)
     return {"baseline": base, "+ past closes": closes, "+ rest": rested, "+ quarterbacks": qbs,
-            "+ other injuries": injured}
+            "+ other injuries": injured, "+ division games": rivals}

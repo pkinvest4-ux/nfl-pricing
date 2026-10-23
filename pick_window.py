@@ -11,4 +11,4 @@ if __name__ == "__main__":
     for size in (1, 3, 5):
         seasons = tuple(str(s) for s in range(2024 - size, 2024))
         m = tuned_models(games, seasons, "line")
-        print(f"tuned on {seasons[0]} to {seasons[-1]}: 2024 full model {st.mean(gaps(games, run(games, **m['+ other injuries']), '2024')):.3f}")
+        print(f"tuned on {seasons[0]} to {seasons[-1]}: 2024 full model {st.mean(gaps(games, run(games, **m['+ division games']), '2024')):.3f}")

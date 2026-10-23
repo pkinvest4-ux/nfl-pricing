@@ -10,7 +10,7 @@ games = load()
 rows = []
 for season in ("2025", "2026"):
     trace = {}
-    spread = run(games, **tuned_models(games, window(season), "line")["+ other injuries"], trace=trace)
+    spread = run(games, **tuned_models(games, window(season), "line")["+ division games"], trace=trace)
     total = totals.run(games, **totals.tuned_models(games, window(season))["+ other injuries"])
     for g, p, t in zip(games, spread, total):
         if g["season"] != season or g["close"] is None:
@@ -19,7 +19,8 @@ for season in ("2025", "2026"):
         rows.append({
             "season": season, "week": g["week"], "date": g["date"], "away": g["away"], "home": g["home"],
             "book": g["book"], "team ratings": parts["team"], "home field": parts["home_court"],
-            "rest": parts["rest"], "quarterbacks": parts["qb"], "other injuries": parts["injuries"],
+            "rest": parts["rest"], "quarterbacks": parts["qb"] + parts["qb_level"], "other injuries": parts["injuries"],
+            "division game": "yes" if g["div"] else "no",
             "model: home by": p, "close: home by": close, "result: home by": g["margin"],
             "points off the close": abs(p - close),
             "closer to result": "model" if abs(g["margin"] - p) < abs(g["margin"] - close) else

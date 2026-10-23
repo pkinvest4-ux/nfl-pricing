@@ -6,6 +6,7 @@ load() returns every game since 2012, in date order, each with:
   home_rest / away_rest              days since each team's last game (the schedule is public months ahead)
   home_qb / away_qb                  the quarterback change: value of the expected starter minus the usual one
   home_starters_out / away_...       other starters on the final injury report (Out 1, Doubtful 0.75, Questionable 0.25)
+  home_qb_level / away_qb_level      the expected starter's value minus the team's usual one over its last 8 games
 """
 import csv
 import json
@@ -105,6 +106,7 @@ def add_quarterbacks(games):
 
     history = defaultdict(lambda: deque(maxlen=QB_GAMES))   # quarterback -> EPA in his recent starts
     last, recent = {}, defaultdict(lambda: deque(maxlen=3))  # team -> last starter; team -> recent starters
+    team_qb = defaultdict(lambda: deque(maxlen=8))           # team -> its starter's value in its last 8 games
 
     def value(pid):
         h = history.get(pid, ())
@@ -125,11 +127,14 @@ def add_quarterbacks(games):
                     expected = others[0] if others else None
                 g[side + "_qb"] = (value(expected) - value(usual)) if usual else 0.0
                 g[side + "_qb_out"] = usual in listed if usual else False
+                base = team_qb[t]
+                g[side + "_qb_level"] = (value(expected) - sum(base) / len(base)) if (usual and base) else 0.0
         for g in by_date[day]:  # only now is the day's box score known
             for side in ("home", "away"):
                 st = starters.get(g["id"], {}).get(g[side])
                 if st:
                     pid, epa = st
+                    team_qb[g[side]].append(value(pid))
                     history[pid].append(epa)
                     last[g[side]] = pid
                     if pid not in recent[g[side]]:
@@ -180,3 +185,4 @@ def add_starters(games):
             for side in ("home", "away"):
                 if g["id"] in snaps:
                     recent[g[side]].append(g["id"])
+
