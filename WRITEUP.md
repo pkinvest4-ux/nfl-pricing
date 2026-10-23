@@ -3,7 +3,8 @@
 **Patrick Kooy Velazquez** · A second sport, built the same way as the NBA trial · October 2026
 
 **The result:** my starting model was **2.10 points** off the pre-game close on the 2025 season. With the
-improvements, it's **1.78**.
+improvements, it's **1.78**. Across the last ten seasons, each tuned only on the seasons before it, it's
+2.36 down to **1.90**, and every improvement holds up.
 
 ---
 
